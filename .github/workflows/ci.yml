@@ -2,8 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
+
+env:
+  NODE_VERSION: '22'
+  NODE_CACHE: 'npm'
+  EXPORT_DIR: 'out'
+  NEXT_TELEMETRY_DISABLED: '1'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,40 +18,24 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    env:
-      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: ${{ env.NODE_CACHE }}
 
       - run: npm ci
-
       - name: Prettier check
         run: npm run format:check
-
       - name: ESLint
         run: npm run lint
-
       - name: Type check
         run: npx tsc --noEmit
-
       - name: Build (static export)
         run: npm run build
-
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
-
       - name: E2E tests (Playwright)
         run: npm run test:e2e
-
-      - name: Upload Playwright report on failure
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
