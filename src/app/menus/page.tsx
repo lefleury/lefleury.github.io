@@ -1,7 +1,7 @@
-export default function HomePage() {
+export default function MenusPage() {
   return (
     <main>
-      <h1>Accueil</h1>
+      <h1>Menus</h1>
       <p>Contenu à venir.</p>
     </main>
   )
