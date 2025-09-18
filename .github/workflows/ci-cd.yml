@@ -1,0 +1,120 @@
+name: CI/CD
+run-name: CI/CD · ${{ github.event_name }} · ${{ github.event_name == 'workflow_dispatch' && inputs.ref || github.ref_name }}
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Git ref to deploy'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  NODE_CACHE: 'npm'
+  EXPORT_DIR: 'out'
+  NEXT_TELEMETRY_DISABLED: '1'
+  PLAYWRIGHT_REPORT_DIR: 'playwright-report'
+  PLAYWRIGHT_REPORT_RETENTION_DAYS: '7'
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BUILD_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.sha }}
+    steps:
+      - name: Checkout ${{ env.BUILD_REF }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
+
+      - name: Setup Node ${{ env.NODE_VERSION }} (npm cache)
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: ${{ env.NODE_CACHE }}
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Prettier check
+        run: npm run format:check
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: Type check (tsc)
+        run: npx tsc --noEmit
+
+      - name: Restore Next build cache
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-nextcache-node${{ env.NODE_VERSION }}-${{ hashFiles('package-lock.json', 'next.config.*', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextcache-node${{ env.NODE_VERSION }}-
+          retention-days: 1
+
+      - name: Build (static export)
+        run: npm run build
+
+      - name: Restore Playwright browsers cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+          retention-days: 1
+
+      - name: Install Playwright browsers
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+        run: npx playwright install --with-deps
+
+      - name: E2E tests (Playwright)
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/ms-playwright
+        run: npm run test:e2e
+
+      - name: Upload Playwright report (on failure)
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ./${{ env.PLAYWRIGHT_REPORT_DIR }}/
+          retention-days: ${{ env.Playwright_REPORT_RETENTION_DAYS }}
+
+      - name: Upload Pages artifact
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./${{ env.EXPORT_DIR }}
+
+  deploy:
+    name: Deploy
+    needs: ci
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - id: deploy
+        name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
