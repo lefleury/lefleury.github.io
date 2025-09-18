@@ -41,5 +41,14 @@
   "engines": {
     "node": ">=22 <23"
   },
-  "packageManager": "npm@11.6.0"
+  "packageManager": "npm@11.6.0",
+  "description": "Static website for Restaurant Le Fleury.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lefleury/lefleury.github.io.git"
+  },
+  "homepage": "https://lefleury.github.io/",
+  "bugs": {
+    "url": "https://github.com/lefleury/lefleury.github.io/issues"
+  }
 }
