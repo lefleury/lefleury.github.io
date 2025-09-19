@@ -3,10 +3,8 @@
 Website for the **Le Fleury** restaurant.  
 **Live:** https://lefleury.github.io/
 
-[![CI](https://github.com/lefleury/lefleury.github.io/actions/workflows/ci.yml/badge.svg)](https://github.com/lefleury/lefleury.github.io/actions/workflows/ci.yml)
-[![CD](https://github.com/lefleury/lefleury.github.io/actions/workflows/cd.yml/badge.svg)](https://github.com/lefleury/lefleury.github.io/actions/workflows/cd.yml)
+[![CI/CD](https://github.com/lefleury/lefleury.github.io/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/lefleury/lefleury.github.io/actions/workflows/ci-cd.yml)
 
-Static website for the bar/restaurant **Le Fleury**.  
 Tech stack: **Next.js 15**, **TypeScript**, **Tailwind CSS 4**, **ESLint 9 (flat)**, **Prettier 3**, **Husky + lint-staged**, **Playwright**.  
 Deployment: **GitHub Pages** via GitHub Actions (CI/CD).
 
